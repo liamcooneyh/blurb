@@ -14,9 +14,9 @@ auth_bp = Blueprint('auth', __name__)
 sp_oauth = SpotifyOAuth(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, scope='user-library-read')
 
 @auth_bp.route('/')
-def index():
+def index(): 
     if not session.get('token_info'):
-        auth_url = sp_oauth.get_authorize_url()
+        auth_url = sp_oauth.get_authorize_url() # this line is the problem
         print('test')
         return redirect(auth_url)
 
