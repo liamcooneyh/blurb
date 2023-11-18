@@ -1,0 +1,96 @@
+app.py:
+
+from flask import Flask
+from auth import auth_bp
+from landing_page import landing_bp
+from user_profile import user_profile_bp
+from current_track import current_track_bp
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = '7d266374106b85802220b6d77d03214f05f6581d45ee9d7c25c4984b2d0f972e'
+
+# Retrieve environment variables 
+CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
+CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
+
+app.register_blueprint(auth_bp)
+app.register_blueprint(landing_bp)
+app.register_blueprint(user_profile_bp)
+app.register_blueprint(current_track_bp)
+
+auth.py:
+
+# auth.py
+from flask import Blueprint, redirect, render_template, session
+from spotipy.oauth2 import SpotifyOAuth
+
+# Retrieve environment variables 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
+CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
+
+auth_bp = Blueprint('auth', __name__)
+sp_oauth = SpotifyOAuth(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, scope='user-library-read')
+
+@auth_bp.route('/')
+def index():
+    if not session.get('token_info'):
+        auth_url = sp_oauth.get_authorize_url()
+        return redirect(auth_url)
+    
+    return redirect('/landing')
+
+
+landing_page.py:
+# landing_page.py
+from flask import Blueprint, render_template
+
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# Retrieve environment variables 
+CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
+CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
+
+landing_bp = Blueprint('landing', __name__)
+
+@landing_bp.route('/landing')
+def landing():
+    return render_template('landing_page.html')
+
+
+user_profile.py:
+# user_profile.py
+from flask import Blueprint, render_template, session
+from spotipy import Spotify
+
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# Retrieve environment variables 
+CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
+CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
+
+user_profile_bp = Blueprint('user_profile', __name__)
+
+@user_profile_bp.route('/user_profile')
+def user_profile():
+    token_info = session.get('token_info')
+    if token_info:
+        sp = Spotify(auth=token_info['access_token'])
+        user_data = sp.current_user()
+        return render_template('user_profile.html', user_data=user_data)
+    else:
+        return 'Error: User not authenticated. <a href="/">Authenticate with Spotify</a>'
