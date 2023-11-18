@@ -5,10 +5,10 @@ from auth import auth_bp
 # Import other blueprints as needed
 import os
 from dotenv import load_dotenv
-
 load_dotenv()
 
 app = Flask(__name__)
+app.debug = True
 app.secret_key = os.getenv('FLASK_SECRET_KEY')  
 
 # Retrieve environment variables
