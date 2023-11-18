@@ -13,7 +13,7 @@ CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
 
 auth_bp = Blueprint('auth', __name__)
-sp_oauth = SpotifyOAuth(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, scope='user-library-read')
+sp_oauth = SpotifyOAuth(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, scope='user-top-read')
 
 # Authenticates the user and brings them to the landing page if successful
 @auth_bp.route('/')
@@ -69,11 +69,13 @@ def landing():
 
         # Make a request and get the user's information
         user_info = sp.me()
+        top_artists = sp.current_user_top_artists()
 
         # Uncomment this line to print user_info for debugging
         # print(user_info)
+        print(top_artists['items'][0]['name'])
 
-        return render_template('landing.html', user_info=user_info)
+        return render_template('landing.html', user_info=user_info, top_artists=top_artists)
     else:
         # Token is expired or missing, redirect to the authorization page
         auth_url = sp_oauth.get_authorize_url()
