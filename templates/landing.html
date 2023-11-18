@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Landing Page</title>
 </head>
 <body>
-    <h1>landing page</h1>
+    <header>
+        <h1>Hello, {{ user_info.display_name }}</h1>
+    </header>
+
+    <section>
+        <h2>User Information</h2>
+        <ul>
+            <li><strong>Display Name:</strong> {{ user_info.display_name }}</li>
+            <li><strong>Email:</strong> {{ user_info.email }}</li>
+            <!-- Add more user information as needed -->
+        </ul>
+    </section>
+
+    <!-- Add more sections or content as needed -->
+
+    <footer>
+        <p>&copy; 2023 Your App Name</p>
+    </footer>
 </body>
 </html>
-
-
-
