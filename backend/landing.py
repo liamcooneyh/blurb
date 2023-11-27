@@ -2,6 +2,7 @@
 from flask import Flask, Blueprint, render_template, request, redirect, url_for, session
 from spotipy.oauth2 import SpotifyOAuth
 import spotipy
+# import jsonify
 import requests
 import os
 from dotenv import load_dotenv
@@ -31,14 +32,8 @@ def landing():
 
         # Make a request and get the user's information
         user_info = sp.me()
-        top_artists = sp.current_user_top_artists()
-        top_artist = top_artists['items'][0]['name']
 
-        # Uncomment this line to print user_info for debugging
-        # print(user_info)
-        # print(top_artists['items'][0]['name']) # gets top artist for the user
-
-        return render_template('landing.html', user_info=user_info, top_artist=top_artist)
+        return render_template('landing.html', user_info=user_info)
     else:
         # Token is expired or missing, redirect to the authorization page
         auth_url = sp_oauth.get_authorize_url()
