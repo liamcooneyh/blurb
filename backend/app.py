@@ -1,6 +1,6 @@
 # Combined script (app.py)
 
-from flask import Flask, Blueprint, render_template, request, redirect, url_for, session
+from flask import Flask, Blueprint, jsonify, render_template, request, redirect, url_for, session
 from spotipy.oauth2 import SpotifyOAuth
 import spotipy
 import requests
@@ -36,10 +36,11 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/')
 def index(): 
     if not session.get('token_info'):       
-        auth_url = sp_oauth.get_authorize_url()     # Generates URL for Spotify OAuth login page
+        auth_url = sp_oauth.get_authorize_url()  # Generates URL for Spotify OAuth login page
+        print("Redirecting to auth_url:", auth_url)  # Debug statement
         return redirect(auth_url)
 
-    return redirect('/landing')     # Send authenticated user to the landing page
+    return redirect('/landing')  # Send authenticated user to the landing page
 
 
 @auth_bp.route('/callback')
@@ -49,9 +50,11 @@ def callback():
 
     if error:
         # Handle the error scenario (e.g., user denied the permission)
+        print("Error received from Spotify:", error)  # Debug statement
         return f"Error received from Spotify: {error}", 400
 
     if not auth_code:
+        print("Authorization code not found in the URL")  # Debug statement
         return 'Authorization code not found in the URL', 400
 
     try:
@@ -62,12 +65,14 @@ def callback():
         return 'Failed to obtain access token', 500
 
     if not token_info:
+        print("Failed to obtain access token")  # Debug statement
         return 'Failed to obtain access token', 500
 
     # Store the token information in the session or a database for later use
     session['token_info'] = token_info
 
-    return redirect('/landing')
+    # Redirect to React app
+    return redirect('http://localhost:3000/landing')
 
 # Register the authentication blueprint
 app.register_blueprint(auth_bp)
@@ -82,7 +87,7 @@ landing_bp = Blueprint('landing', __name__)
 # Displays the information on the landing page, some information about the user
 @landing_bp.route('/landing')
 def landing():
-    token_info = sp_oauth.get_cached_token() # Get access token from cookies
+    token_info = sp_oauth.get_cached_token()  # Get access token from cookies
 
     if token_info and not sp_oauth.is_token_expired(token_info):
         # Stores the session token info for later use
@@ -94,13 +99,36 @@ def landing():
         # Make a request and get the user's information
         user_info = sp.me()
 
+        print("User information retrieved:", user_info)  # Debug statement
         return render_template('landing.html', user_info=user_info)
     else:
+        print("Token is expired or missing, redirecting to auth_url")  # Debug statement
         # Token is expired or missing, redirect to the authorization page
         auth_url = sp_oauth.get_authorize_url()
+        print("Redirecting to auth_url:", auth_url)  # Debug statement
         return redirect(auth_url)
 
 app.register_blueprint(landing_bp)
+
+
+##########################
+##### GENERIC ROUTES #####
+##########################
+@app.route('/api/get-token')
+def get_token():
+    token_info = session.get('token_info')
+
+    if token_info:
+        return jsonify({'access_token': token_info['access_token']}), 200
+    
+    else:
+        return jsonify({'error': 'Token not found'}), 404
+
+
+@app.route('/error')
+def error():
+    return "An error occurred."
+
 
 # Run the Flask app
 if __name__ == '__main__':
