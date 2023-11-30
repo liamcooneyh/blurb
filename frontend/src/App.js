@@ -32,7 +32,7 @@ function App() {
 
   if (!isAuthenticated) {
     return <div>
-            <a href="http://localhost:5000">Log in</a>
+            <h1 href="http://localhost:5000">Log in</h1>
           </div>;
   }
 
@@ -40,6 +40,7 @@ function App() {
   return (
     <div>
       <h1>Testing changes</h1>
+      <h2>hello</h2>
       {/* Your protected content goes here */}
     </div>
   );

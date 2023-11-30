@@ -1,7 +1,11 @@
 # Combined script (app.py)
+import sys 
+print(f"Sys Path:")
+
+sys.exit() 
 
 from flask import Flask, Blueprint, jsonify, render_template, request, redirect, url_for, session
-from spotipy.oauth2 import SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 import spotipy
 import requests
 import os
@@ -15,6 +19,15 @@ CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI')
 FLASK_SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
 
+# Create SpotifyClientCredentials instance with credentials
+client_credentials_manager = SpotifyClientCredentials(
+    client_id=CLIENT_ID,
+    client_secret=CLIENT_SECRET
+)
+
+# Initialize a Spotify client
+spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
 # Initialize Flask app
 app = Flask(__name__)
 app.debug = True
@@ -25,7 +38,6 @@ sp_oauth = SpotifyOAuth(CLIENT_ID,
                         CLIENT_SECRET,
                         REDIRECT_URI, 
                         scope='user-top-read')
-
 
 ################################
 ### AUTHENTICATION BLUEPRINT ###
@@ -115,6 +127,7 @@ app.register_blueprint(landing_bp)
 ##### GENERIC ROUTES #####
 ##########################
 @app.route('/api/get-token')
+# Can use this method for sending user data to React (e.g 'api/get-current-song)
 def get_token():
     token_info = session.get('token_info')
 
