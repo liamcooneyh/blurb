@@ -1,9 +1,5 @@
 # Combined script (app.py)
-import sys 
-print(f"Sys Path:")
-
-sys.exit() 
-
+import logging
 from flask import Flask, Blueprint, jsonify, render_template, request, redirect, url_for, session
 from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 import spotipy
@@ -12,6 +8,10 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(filename='app.log', level=logging.DEBUG,
+                    format='%(asctime)s [%(levelname)s] - %(message)s')
 
 # Retrieve environment variables
 CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
@@ -49,10 +49,12 @@ auth_bp = Blueprint('auth', __name__)
 def index(): 
     if not session.get('token_info'):       
         auth_url = sp_oauth.get_authorize_url()  # Generates URL for Spotify OAuth login page
-        print("Redirecting to auth_url:", auth_url)  # Debug statement
+        logging.info("Redirecting to auth_url: %s", auth_url)  # Log statement
         return redirect(auth_url)
 
-    return redirect('/landing')  # Send authenticated user to the landing page
+    # Send authenticated user to the React landing page
+    logging.info("User already authenticated, redirecting to React landing page")
+    return redirect('http://localhost:3000/') 
 
 
 @auth_bp.route('/callback')
@@ -62,28 +64,29 @@ def callback():
 
     if error:
         # Handle the error scenario (e.g., user denied the permission)
-        print("Error received from Spotify:", error)  # Debug statement
+        logging.error("Error received from Spotify: %s", error)
         return f"Error received from Spotify: {error}", 400
 
     if not auth_code:
-        print("Authorization code not found in the URL")  # Debug statement
+        logging.error("Authorization code not found in the URL")
         return 'Authorization code not found in the URL', 400
 
     try:
         token_info = sp_oauth.get_access_token(auth_code)
     except Exception as e:
         # Log the exception for debugging
-        print(f"Error obtaining access token: {e}")
+        logging.error("Error obtaining access token: %s", e)
         return 'Failed to obtain access token', 500
 
     if not token_info:
-        print("Failed to obtain access token")  # Debug statement
+        logging.error("Failed to obtain access token")
         return 'Failed to obtain access token', 500
 
     # Store the token information in the session or a database for later use
     session['token_info'] = token_info
 
     # Redirect to React app
+    logging.info("Redirecting to React landing page after successful authentication")
     return redirect('http://localhost:3000/landing')
 
 # Register the authentication blueprint
@@ -111,20 +114,20 @@ def landing():
         # Make a request and get the user's information
         user_info = sp.me()
 
-        print("User information retrieved:", user_info)  # Debug statement
+        logging.info("User information retrieved: %s", user_info)  # Log statement
         return render_template('landing.html', user_info=user_info)
     else:
-        print("Token is expired or missing, redirecting to auth_url")  # Debug statement
+        logging.warning("Token is expired or missing, redirecting to auth_url")
         # Token is expired or missing, redirect to the authorization page
         auth_url = sp_oauth.get_authorize_url()
-        print("Redirecting to auth_url:", auth_url)  # Debug statement
+        logging.info("Redirecting to auth_url: %s", auth_url)  # Log statement
         return redirect(auth_url)
 
 app.register_blueprint(landing_bp)
 
 
 ##########################
-##### GENERIC ROUTES #####
+####### API ROUTES #######
 ##########################
 @app.route('/api/get-token')
 # Can use this method for sending user data to React (e.g 'api/get-current-song)
@@ -135,6 +138,24 @@ def get_token():
         return jsonify({'access_token': token_info['access_token']}), 200
     
     else:
+        logging.error("Token not found in the session")
+        return jsonify({'error': 'Token not found'}), 404
+    
+
+@app.route('/api/user-info')
+def get_user_data():
+    token_info = session.get('token_info')
+
+    if token_info:
+        try:
+            user_info = spotify.me()
+            logging.info("User information retrieved from Spotify API: %s", user_info)  # Log statement
+            return jsonify({'user_info': user_info}), 200
+        except Exception as e:
+            logging.error("Error fetching user information from Spotify API: %s", e)  # Log statement
+            return jsonify({'error': str(e)}), 500
+    else:
+        logging.error("Token not found in the session")
         return jsonify({'error': 'Token not found'}), 404
 
 

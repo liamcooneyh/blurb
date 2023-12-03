@@ -22,7 +22,7 @@ distlib==0.3.2
 entrypoints==0.3
 et-xmlfile==1.1.0
 filelock==3.0.12
-Flask==3.0.0
+flask==3.0.0
 idna==3.4
 importlib-metadata==6.8.0
 ipykernel==6.0.1
@@ -107,7 +107,7 @@ urllib3==2.1.0
 virtualenv==20.4.7
 wcwidth==0.2.5
 webencodings==0.5.1
-Werkzeug==3.0.1
+werkzeug==3.0.1
 widgetsnbextension==3.5.1
 xlrd==2.0.1
 zipp==3.17.0
