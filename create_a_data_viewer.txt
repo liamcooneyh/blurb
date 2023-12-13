@@ -1,0 +1,27 @@
+Basically if you just send
+
+want react to do data processing for speed
+
+so we need to get the data into react
+with it in react it gets processed
+
+*** TASK: send flask data to react to be processed and displayed dynamically ***
+
+to get it into react need to send a large amount of data
+    - not too much to slow anything down
+
+
+
+data viewer
+- exploratory tool for viewing api data
+- from dropdowns select your parameters and get your data in a json
+    - parameters go into the query of the api call
+        - kind of just building api calls 
+            - might be worth doing 
+    - convert to excel etc.
+
+
+
+
+
+
