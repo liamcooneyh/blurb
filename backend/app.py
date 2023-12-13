@@ -7,6 +7,8 @@ import requests
 import os
 from dotenv import load_dotenv
 import pprint
+from functools import wraps
+from datetime import datetime
 
 load_dotenv()
 
@@ -94,70 +96,57 @@ def callback():
 app.register_blueprint(auth_bp)
 
 
-#########################
-### LANDING BLUEPRINT ###
-#########################
-# Define other routes or blueprints (from app.py)
-landing_bp = Blueprint('landing', __name__)
+# Spotify auth decorator
+def spotify_auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token_info = session.get('token_info')
 
-# Displays the information on the landing page, some information about the user
-@landing_bp.route('/landing')
-def landing():
-    token_info = sp_oauth.get_cached_token()  # Get access token from cookies
+        if not token_info:
+            logging.error("Token not found in the session")
+            return jsonify({'error': 'Token not found'}), 404
 
-    if token_info and not sp_oauth.is_token_expired(token_info):
-        # Stores the session token info for later use
-        session['token_info'] = token_info
+        try:
+            if is_token_expired(token_info):
+                token_info = refresh_token(token_info)
+                session['token_info'] = token_info  # Update the session with the refreshed token
 
-        # Create Spotipy client with the access token
-        sp = spotipy.Spotify(auth=token_info['access_token'])
+            return f(spotify=spotipy.Spotify(auth=token_info['access_token']), *args, **kwargs)
+        except Exception as e:
+            logging.error("Error: %s", e)
+            return jsonify({'error': str(e)}), 500
 
-        # Make a request and get the user's information
-        user_info = sp.me()
+    return decorated_function
 
-        logging.info("User information retrieved: %s", user_info)  # Log statement
-        return render_template('landing.html', user_info=user_info)
-    else:
-        logging.warning("Token is expired or missing, redirecting to auth_url")
-        # Token is expired or missing, redirect to the authorization page
-        auth_url = sp_oauth.get_authorize_url()
-        logging.info("Redirecting to auth_url: %s", auth_url)  # Log statement
-        return redirect(auth_url)
+# Logic for expired token
+def is_token_expired(token_info):
+    # Check if the current time is greater than the expiry time
+    now = datetime.now().timestamp()
+    return token_info['expires_at'] - now < 60  # Refresh if less than 60 seconds remaining
 
-app.register_blueprint(landing_bp)
+# Logic to refresh token
+def refresh_token(token_info):
+    # Refresh the token using the SpotifyOAuth instance
+    refreshed_token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+    return refreshed_token_info
+
 
 
 ##########################
 ####### API ROUTES #######
 ##########################
-@app.route('/api/get-token')
-# Can use this method for sending user data to React (e.g 'api/get-current-song)
-def get_token():
-    token_info = session.get('token_info')
-
-    if token_info:
-        return jsonify({'access_token': token_info['access_token']}), 200
-    
-    else:
-        logging.error("Token not found in the session")
-        return jsonify({'error': 'Token not found'}), 404
-    
-
 @app.route('/api/user-info')
-def get_user_data():
-    token_info = session.get('token_info')
+@spotify_auth_required
+def get_user_data(spotify):
+    user_info = spotify.me()
+    logging.info("User information retrieved from Spotify API: %s", user_info)
+    return jsonify({'user_info': user_info}), 200
 
-    if token_info:
-        try:
-            user_info = spotify.me()
-            logging.info("User information retrieved from Spotify API: %s", user_info)  # Log statement
-            return jsonify({'user_info': user_info}), 200
-        except Exception as e:
-            logging.error("Error fetching user information from Spotify API: %s", e)  # Log statement
-            return jsonify({'error': str(e)}), 500
-    else:
-        logging.error("Token not found in the session")
-        return jsonify({'error': 'Token not found'}), 404
+@app.route('/api/testing')
+@spotify_auth_required
+def get_recent_tracks(spotify):
+    recent_tracks = spotify.current_user_saved_albums()
+    return jsonify(recent_tracks), 200
 
 
 @app.route('/error')
